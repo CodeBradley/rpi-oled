@@ -1,0 +1,5 @@
+luma.oled
+RPi.GPIO
+smbus2
+psutil
+sphinx

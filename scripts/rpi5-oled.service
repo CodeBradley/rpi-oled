@@ -1,0 +1,13 @@
+[Unit]
+Description=Raspberry Pi OLED Stats Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rpi5-oled-v2
+ExecStart=/opt/rpi5-oled-v2/venv/bin/python /opt/rpi5-oled-v2/scripts/run_oled_service.py
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
