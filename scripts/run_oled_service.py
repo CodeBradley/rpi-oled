@@ -18,7 +18,7 @@ from oled.system_checks import check_i2c_enabled, check_oled_connected, check_ro
 
 def main():
     # For development/testing, set this to True to bypass hardware checks
-    DEV_MODE = True
+    DEV_MODE = False
     
     if not check_root():
         print("ERROR: Script must be run as root.")
