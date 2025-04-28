@@ -1,6 +1,9 @@
 """
 Main entry point for OLED stats service.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 from oled.display_manager import DisplayManager
 from oled.widgets.cpu import CPUWidget
