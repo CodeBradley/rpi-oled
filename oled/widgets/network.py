@@ -33,5 +33,7 @@ class NetworkWidget(BaseWidget):
 
     def render(self, draw, y, width):
         draw.text((0, y), self.hostname, font=self.text_font, fill=255)
-        draw.text((self.text_font.getsize(self.hostname)[0] + 10, y), self.ip, font=self.ip_font, fill=255)
+        # Use getbbox() instead of getsize() for newer Pillow versions
+        hostname_width = self.text_font.getbbox(self.hostname)[2] # width is in the 3rd position of bbox
+        draw.text((hostname_width + 10, y), self.ip, font=self.ip_font, fill=255)
         return y + 14
