@@ -4,30 +4,30 @@ System checks for I2C, OLED, and permissions.
 import subprocess
 import os
 
-def check_i2c_enabled():
+def is_i2c_available(address=0x3C, bus=1):
     """
-    Checks if I2C is enabled using raspi-config.
-    Returns True if enabled, False otherwise.
-    """
-    try:
-        output = subprocess.check_output(['raspi-config', 'nonint', 'get_i2c'])
-        return output.strip() == b'0'
-    except Exception:
-        return False
-
-def check_oled_connected(address=0x3C, bus=1):
-    """
-    Uses i2cdetect to check if OLED is connected.
-    Returns True if found, False otherwise.
+    Checks if the I2C device at the specified address is available.
+    
+    Args:
+        address: The I2C address to check (default 0x3C for SSD1306)
+        bus: The I2C bus number (default 1 for most Raspberry Pi models)
+        
+    Returns:
+        bool: True if the device is available, False otherwise
     """
     try:
         output = subprocess.check_output(['i2cdetect', '-y', str(bus)]).decode()
         return f"{address:02x}" in output
-    except Exception:
+    except Exception as e:
+        print(f"Error checking I2C: {e}")
         return False
 
-def check_root():
+def is_root():
     """
-    Checks if running as root (needed for GPIO/I2C).
+    Checks if the script is running as root, which is required for
+    direct hardware access on the Raspberry Pi.
+    
+    Returns:
+        bool: True if running as root, False otherwise
     """
     return os.geteuid() == 0
