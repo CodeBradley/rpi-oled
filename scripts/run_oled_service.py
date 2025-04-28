@@ -45,7 +45,7 @@ def main():
         print(f"Error detecting I2C devices: {e}")
 
 
-    display = DisplayManager()
+    display = DisplayManager(dev_mode=DEV_MODE)
     display.add_widget(CPUWidget())
     display.add_widget(RAMWidget())
     display.add_widget(TempWidget())
