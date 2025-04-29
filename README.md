@@ -9,6 +9,11 @@ Displays real-time system stats on a 0.91" SSD1306 OLED using luma.oled and RPi.
 - Runs as a service or cron job
 - Easy to extend and configure
 
+## Deployment
+```bash
+curl -sSL https://github.com/CodeBradley/rpi-oled/raw/main/install.sh | sudo bash
+```
+
 ## Setup
 - Python 3.7+
 - Run as root (for GPIO/I2C access)

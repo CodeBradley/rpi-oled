@@ -1,29 +1,29 @@
 """
-DockerWidget: Displays Docker icon if docker is running.
+DockerWidget: Displays Docker icon if Docker service is running.
 """
 import subprocess
-from PIL import ImageFont
-from .base import BaseWidget
-import os
+from .base import ServiceWidget
 
-class DockerWidget(BaseWidget):
+class DockerWidget(ServiceWidget):
     """
     Widget to display Docker icon if Docker is running.
     """
-    def __init__(self, font_path=None):
-        self.font_path = font_path or os.path.join(os.path.dirname(__file__), '../../fonts/lakenet-boxicons.ttf')
-        self.icon_font = ImageFont.truetype(self.font_path, 12)
-        self.icon_char = chr(0xE91B)  # boxicons Docker icon (bxl-docker)
+    def __init__(self):
+        # Docker icon from BoxIcons (bxl-docker)
+        super().__init__(icon_char=chr(0xE91B))
         self.active = False
 
     def update(self):
+        # Check if Docker service is active
         try:
             subprocess.check_output(['systemctl', 'is-active', '--quiet', 'docker'])
             self.active = True
         except subprocess.CalledProcessError:
             self.active = False
-
-    def render(self, draw, y, width):
-        if self.active:
-            draw.text((width - 40, y), self.icon_char, font=self.icon_font, fill=255)
-        return y
+        except FileNotFoundError:
+            # Handle systems without systemctl
+            try:
+                subprocess.check_output(['docker', 'info'], stderr=subprocess.DEVNULL)
+                self.active = True
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                self.active = False

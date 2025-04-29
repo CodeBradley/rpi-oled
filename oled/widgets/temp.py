@@ -1,35 +1,64 @@
 """
-TempWidget: Displays CPU temperature with icon.
+TempWidget: Displays CPU temperature with BoxIcon.
 """
-from PIL import ImageFont
-from .base import BaseWidget
-import os
+from .base import ResourceWidget
 
 def get_cpu_temp():
+    """
+    Read CPU temperature from thermal zone.
+    Returns temperature in Celsius.
+    """
     try:
         with open("/sys/class/thermal/thermal_zone0/temp") as f:
             return int(f.read()) / 1000.0
     except Exception:
         return 0.0
 
-class TempWidget(BaseWidget):
+class TempWidget(ResourceWidget):
     """
-    Widget to display CPU temperature.
+    Widget to display CPU temperature with a thermometer icon.
     """
-    def __init__(self, font_path=None):
-        self.temp = 0.0
-        self.font_path = font_path or os.path.join(os.path.dirname(__file__), '../../fonts/lakenet-boxicons.ttf')
-        self.icon_font = ImageFont.truetype(self.font_path, 12)
-        self.text_font = ImageFont.load_default()
-        self.icon_char = chr(0xE9D9)  # boxicons thermometer icon (bxs-thermometer)
-
+    def __init__(self):
+        # Thermometer icon from BoxIcons (bxs-thermometer)
+        super().__init__(icon_char=chr(0xE9D9))
+        self.value = 0
+        
     def update(self):
-        self.temp = get_cpu_temp()
-
-    def render(self, draw, y, width):
-        # Draw thermometer icon
-        draw.text((0, y), self.icon_char, font=self.icon_font, fill=255)
-        # Draw temperature text
-        text = f"{int(self.temp)}°"
-        draw.text((18, y), text, font=self.text_font, fill=255)
-        return y + 12
+        # Get CPU temperature
+        self.value = get_cpu_temp()
+        
+    def render(self, draw, x, y, width, align_right=False):
+        """
+        Draw temperature with icon and degree symbol instead of percentage.
+        
+        Args:
+            draw: PIL.ImageDraw object
+            x: Current x position (horizontal)
+            y: Current y position (vertical)
+            width: Total display width
+            align_right: If True, position from right edge (ignored for ResourceWidget)
+            
+        Returns:
+            tuple: Updated (x, y) position for next widget
+        """
+        # Draw icon
+        draw.text((x, y), self.icon_char, font=self.icon_font, fill=255)
+        
+        # Calculate icon width
+        try:
+            icon_width = self.icon_font.getbbox(self.icon_char)[2]
+        except AttributeError:
+            icon_width = 12  # Fallback width
+        
+        # Draw temperature with degree symbol
+        temp_text = f"{int(self.value)}°"
+        draw.text((x + icon_width + 1, y), temp_text, font=self.text_font, fill=255)
+        
+        # Calculate text width
+        try:
+            text_width = self.text_font.getbbox(temp_text)[2]
+        except AttributeError:
+            text_width = len(temp_text) * 6  # Approximate width
+            
+        # Return new position
+        return (x + icon_width + text_width + 5, y)

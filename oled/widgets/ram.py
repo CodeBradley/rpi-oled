@@ -1,30 +1,19 @@
 """
-RAMWidget: Displays RAM usage percentage with icon.
+RAMWidget: Displays RAM usage percentage with BoxIcon.
 """
 import psutil
-from PIL import ImageFont
-from .base import BaseWidget
-import os
+from .base import ResourceWidget
 
-class RAMWidget(BaseWidget):
+class RAMWidget(ResourceWidget):
     """
-    Widget to display RAM usage.
+    Widget to display RAM usage with a memory icon.
     """
-    def __init__(self, font_path=None):
-        self.usage = 0
-        self.font_path = font_path or os.path.join(os.path.dirname(__file__), '../../fonts/lakenet-boxicons.ttf')
-        self.icon_font = ImageFont.truetype(self.font_path, 12)
-        self.text_font = ImageFont.load_default()
-        self.icon_char = chr(0xE9C8)  # boxicons RAM icon (bxs-memory-card)
+    def __init__(self):
+        # Memory card icon from BoxIcons (bxs-memory-card)
+        super().__init__(icon_char=chr(0xE9C8))
+        self.value = 0
 
     def update(self):
+        # Get RAM usage percentage
         mem = psutil.virtual_memory()
-        self.usage = mem.percent
-
-    def render(self, draw, y, width):
-        # Draw RAM icon
-        draw.text((0, y), self.icon_char, font=self.icon_font, fill=255)
-        # Draw RAM usage text
-        text = f"{int(self.usage)}%"
-        draw.text((18, y), text, font=self.text_font, fill=255)
-        return y + 12
+        self.value = mem.percent

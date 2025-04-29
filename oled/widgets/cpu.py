@@ -1,20 +1,18 @@
 """
-CPUWidget: Displays CPU usage percentage.
+CPUWidget: Displays CPU usage percentage with BoxIcon.
 """
 import psutil
-from .base import BaseWidget
+from .base import ResourceWidget
 
-class CPUWidget(BaseWidget):
+class CPUWidget(ResourceWidget):
     """
-    Widget to display CPU usage.
+    Widget to display CPU usage with a CPU icon.
     """
     def __init__(self):
-        self.usage = 0
+        # CPU icon from BoxIcons (bxs-chip)
+        super().__init__(icon_char=chr(0xE9BD))
+        self.value = 0
 
     def update(self):
-        self.usage = psutil.cpu_percent(interval=None)
-
-    def render(self, draw, y, width):
-        text = f"CPU {int(self.usage)}%"
-        draw.text((0, y), text, fill=255)
-        return y + 12
+        # Get CPU usage percentage
+        self.value = psutil.cpu_percent(interval=None)
