@@ -27,8 +27,8 @@ try:
     print("Attempting to connect to OLED on /dev/i2c-1, address 0x3C...")
     serial = i2c(port=1, address=0x3C)
     
-    # Create the OLED device
-    device = ssd1306(serial, width=128, height=32)  # 0.91" display is 128x32
+    # Create the OLED device with 180 degree rotation to fix upside-down display
+    device = ssd1306(serial, width=128, height=32, rotate=2)  # 0.91" display is 128x32
     
     print("✅ Connected to SSD1306 OLED display!")
     

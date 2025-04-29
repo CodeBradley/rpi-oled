@@ -20,7 +20,7 @@ class TempWidget(ResourceWidget):
     """
     def __init__(self):
         # Thermometer icon from BoxIcons (bxs-thermometer)
-        super().__init__(icon_char=chr(0xE9D9))
+        super().__init__(icon_char=chr(0xEBCA))  # Updated to bxs-thermometer hex value
         self.value = 0
         
     def update(self):

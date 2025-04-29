@@ -10,7 +10,7 @@ class DockerWidget(ServiceWidget):
     """
     def __init__(self):
         # Docker icon from BoxIcons (bxl-docker)
-        super().__init__(icon_char=chr(0xE91B))
+        super().__init__(icon_char=chr(0xEAA7))  # Updated to bxl-docker hex value
         self.active = False
 
     def update(self):

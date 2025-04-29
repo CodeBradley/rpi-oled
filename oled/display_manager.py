@@ -24,7 +24,8 @@ class DisplayManager:
         
         # Initialize the OLED display using standard luma.oled approach
         self.serial = i2c(port=i2c_port, address=i2c_address)
-        self.device = ssd1306(self.serial, width=width, height=height)
+        # Create the device with 180 degree rotation to fix upside-down display
+        self.device = ssd1306(self.serial, width=width, height=height, rotate=2)  # rotate=2 is 180 degrees
         
         # Widget collections by row
         self.top_row_widgets = []    # Resource and service widgets
