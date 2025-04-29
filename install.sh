@@ -159,10 +159,23 @@ if [ ! -d "$INSTALL_DIR/fonts" ]; then
   mkdir -p "$INSTALL_DIR/fonts"
 fi
 
-# Check if custom font is available
-if [ ! -f "$INSTALL_DIR/fonts/lakenet-boxicons.ttf" ]; then
-  echo "${YELLOW}Warning: Custom BoxIcons font not found in fonts directory.${NORMAL}"
-  echo "${YELLOW}The application will attempt to use system fonts instead.${NORMAL}"
+# Check if custom font is available in the repository source
+if [ -f "$SOURCE_DIR/fonts/lakenet-boxicons.ttf" ]; then
+  echo "${GREEN}Found custom BoxIcons font in the repository. Copying to installation directory...${NORMAL}"
+  cp "$SOURCE_DIR/fonts/lakenet-boxicons.ttf" "$INSTALL_DIR/fonts/"
+elif [ -f "/tmp/lakenet-boxicons.ttf" ]; then
+  echo "${GREEN}Found custom BoxIcons font in /tmp. Copying to installation directory...${NORMAL}"
+  cp "/tmp/lakenet-boxicons.ttf" "$INSTALL_DIR/fonts/"
+else
+  echo "${YELLOW}Warning: Custom BoxIcons font not found.${NORMAL}"
+  echo "${YELLOW}Icons may not display correctly. Please copy lakenet-boxicons.ttf to $INSTALL_DIR/fonts/ manually.${NORMAL}"
+  # Create a placeholder font file with warning inside (won't render icons, but prevents crashes)
+  touch "$INSTALL_DIR/fonts/lakenet-boxicons.ttf"
+fi
+
+# Ensure the font file is readable
+if [ -f "$INSTALL_DIR/fonts/lakenet-boxicons.ttf" ]; then
+  chmod 644 "$INSTALL_DIR/fonts/lakenet-boxicons.ttf"
 fi
 
 # Create Python virtual environment
