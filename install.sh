@@ -52,7 +52,7 @@ fi
 # Step 3: Install required packages
 echo "${BOLD}Step 3:${NORMAL} Installing required packages..."
 apt update
-apt install -y python3-pip python3-venv i2c-tools
+apt install -y python3-pip python3-venv python3-dev i2c-tools libjpeg-dev zlib1g-dev libfreetype6-dev liblcms2-dev libopenjp2-7-dev libtiff5-dev libfontconfig1-dev
 
 # Step 4: Install the application
 echo "${BOLD}Step 4:${NORMAL} Installing OLED stats application to ${INSTALL_DIR}..."
@@ -67,16 +67,59 @@ mkdir -p "$INSTALL_DIR"
 # Copy all files
 cp -r "$SCRIPT_DIR"/* "$INSTALL_DIR"
 
+# Create fonts directory if it doesn't exist
+if [ ! -d "$INSTALL_DIR/fonts" ]; then
+  echo "${YELLOW}Creating fonts directory...${NORMAL}"
+  mkdir -p "$INSTALL_DIR/fonts"
+fi
+
+# Check if custom font is available
+if [ ! -f "$INSTALL_DIR/fonts/lakenet-boxicons.ttf" ]; then
+  echo "${YELLOW}Warning: Custom BoxIcons font not found in fonts directory.${NORMAL}"
+  echo "${YELLOW}The application will attempt to use system fonts instead.${NORMAL}"
+fi
+
 # Create Python virtual environment
 echo "${BOLD}Step 5:${NORMAL} Setting up Python virtual environment..."
 cd "$INSTALL_DIR"
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+
+# Upgrade pip first
+pip install --upgrade pip setuptools wheel
+
+# Install Python requirements with proper build tools enabled
+pip install -r requirements.txt --extra-index-url https://www.piwheels.org/simple
 
 # Step 6: Install systemd service
 echo "${BOLD}Step 6:${NORMAL} Installing systemd service..."
 cp "$INSTALL_DIR/scripts/rpi-oled.service" "$SERVICE_FILE"
+
+# Make sure the I2C device has proper permissions
+echo "${BOLD}Step 6a:${NORMAL} Setting up I2C permissions..."
+if grep -q "i2c:" /etc/group; then
+  echo "${GREEN}I2C group exists${NORMAL}"
+else
+  echo "${YELLOW}Creating I2C group...${NORMAL}"
+  groupadd i2c
+fi
+
+# Add current user to i2c group
+if [ -n "$SUDO_USER" ]; then
+  echo "Adding user $SUDO_USER to i2c group..."
+  usermod -aG i2c "$SUDO_USER"
+fi
+
+# Set permissions on I2C device
+if [ -e /dev/i2c-1 ]; then
+  echo "Setting permissions on /dev/i2c-1..."
+  chmod 660 /dev/i2c-1
+  chown root:i2c /dev/i2c-1
+  
+  # Create udev rule for persistent permissions
+  echo 'KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"' > /etc/udev/rules.d/99-i2c.rules
+  udevadm control --reload-rules
+fi
 
 # Make scripts executable
 chmod +x "$INSTALL_DIR/scripts/run_oled_service.py"

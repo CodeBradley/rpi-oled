@@ -5,9 +5,14 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/rpi-oled
-ExecStart=/opt/rpi-oled/venv/bin/python /opt/rpi-oled/scripts/run_oled_service.py
-Restart=always
+ExecStart=/opt/rpi-oled/venv/bin/python3 /opt/rpi-oled/scripts/run_oled_service.py
+Restart=on-failure
+RestartSec=5
 User=root
+# Give the service some time to start
+TimeoutStartSec=10
+# Make sure this service restarts after system upgrades
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
