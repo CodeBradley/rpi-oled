@@ -2,8 +2,12 @@
 #
 # OLED Stats Display Installation Script
 # This script installs the OLED stats display service for Raspberry Pi
-# Must be run as root
 #
+# Options:
+#   -f  Force reinstall (remove existing installation)
+#   -j  Show journalctl logs after installation
+#
+# Must be run as root
 
 # Text formatting
 BOLD=$(tput bold)
@@ -11,6 +15,31 @@ NORMAL=$(tput sgr0)
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+
+# Default options
+FORCE_REINSTALL=0
+SHOW_LOGS=0
+
+# Parse command line arguments
+while getopts ":fj" opt; do
+  case ${opt} in
+    f )
+      FORCE_REINSTALL=1
+      echo "${BLUE}Force reinstall enabled${NORMAL}"
+      ;;
+    j )
+      SHOW_LOGS=1
+      echo "${BLUE}Will show service logs after installation${NORMAL}"
+      ;;
+    \? )
+      echo "${YELLOW}Usage: sudo $0 [-f] [-j]${NORMAL}"
+      echo "  -f  Force reinstall (remove existing installation)"
+      echo "  -j  Show journalctl logs after installation"
+      exit 1
+      ;;
+  esac
+done
 
 # Check if script is run as root
 if [ "$EUID" -ne 0 ]; then
@@ -23,6 +52,34 @@ INSTALL_DIR="/opt/rpi-oled"
 SERVICE_FILE="/etc/systemd/system/rpi-oled.service"
 REPO_URL="https://github.com/CodeBradley/rpi-oled.git"
 TMP_DIR="/tmp/rpi-oled-install"
+
+# Check if already installed and not forcing reinstall
+if [ -d "$INSTALL_DIR" ] && [ "$FORCE_REINSTALL" = "0" ]; then
+  echo "${GREEN}${BOLD}OLED stats service is already installed.${NORMAL}"
+  echo "${GREEN}Refreshing service...${NORMAL}"
+  
+  # Reload and restart the service only
+  systemctl daemon-reload
+  systemctl restart rpi-oled.service
+  
+  # Check if service is running
+  sleep 2
+  if systemctl is-active --quiet rpi-oled.service; then
+    echo "${GREEN}${BOLD}OLED stats service restarted successfully!${NORMAL}"
+  else
+    echo "${YELLOW}${BOLD}OLED stats service failed to restart.${NORMAL}"
+    echo "${YELLOW}Check logs with: journalctl -u rpi-oled.service${NORMAL}"
+  fi
+  
+  # Show logs if requested
+  if [ "$SHOW_LOGS" = "1" ]; then
+    echo "${BLUE}${BOLD}Service logs:${NORMAL}"
+    journalctl -u rpi-oled.service -n 50 --no-pager
+  fi
+  
+  echo "${GREEN}${BOLD}Done!${NORMAL}"
+  exit 0
+fi
 
 # Check if git is installed
 if ! command -v git &> /dev/null; then
@@ -84,8 +141,9 @@ apt install -y python3-pip python3-venv python3-dev i2c-tools libjpeg-dev zlib1g
 
 # Step 4: Install the application
 echo "${BOLD}Step 4:${NORMAL} Installing OLED stats application to ${INSTALL_DIR}..."
-# Remove old installation if it exists
+# Remove old installation if it exists or if force reinstall is enabled
 if [ -d "$INSTALL_DIR" ]; then
+  echo "${YELLOW}Removing existing installation...${NORMAL}"
   rm -rf "$INSTALL_DIR"
 fi
 
@@ -224,6 +282,12 @@ echo "${BOLD}Step 7:${NORMAL} Testing I2C connection..."
 echo "Running i2cdetect to check for OLED display at 0x3C..."
 i2cdetect -y 1
 
+# Display logs if requested
+if [ "$SHOW_LOGS" = "1" ]; then
+  echo "${BLUE}${BOLD}Service logs:${NORMAL}"
+  journalctl -u rpi-oled.service -n 50 --no-pager
+fi
+
 # Finish
 echo
 echo "${GREEN}${BOLD}Installation completed!${NORMAL}"
@@ -235,9 +299,15 @@ echo
 echo "If your OLED display is properly connected to the I2C bus,"
 echo "you should now see stats displaying on it."
 echo
-echo "To check service status: ${BOLD}systemctl status rpi-oled.service${NORMAL}"
-echo "To view service logs:    ${BOLD}journalctl -u rpi-oled.service${NORMAL}"
-echo "To run test script:      ${BOLD}cd ${INSTALL_DIR} && sudo python3 direct_test.py${NORMAL}"
+echo "${BOLD}Usage Options:${NORMAL}"
+echo "  Refresh service only:  ${BOLD}sudo ./install.sh${NORMAL}"
+echo "  Force full reinstall:   ${BOLD}sudo ./install.sh -f${NORMAL}"
+echo "  Show service logs:      ${BOLD}sudo ./install.sh -j${NORMAL}"
+echo
+echo "${BOLD}Common Commands:${NORMAL}"
+echo "  Check service status:   ${BOLD}systemctl status rpi-oled.service${NORMAL}"
+echo "  View service logs:      ${BOLD}journalctl -u rpi-oled.service${NORMAL}"
+echo "  Restart the service:    ${BOLD}systemctl restart rpi-oled.service${NORMAL}"
 
 # Clean up temporary files
 if [ -d "$TMP_DIR" ]; then
