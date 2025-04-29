@@ -18,14 +18,42 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Directory where the script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Installation locations
 INSTALL_DIR="/opt/rpi-oled"
 SERVICE_FILE="/etc/systemd/system/rpi-oled.service"
+REPO_URL="https://github.com/CodeBradley/rpi-oled.git"
+TMP_DIR="/tmp/rpi-oled-install"
+
+# Check if git is installed
+if ! command -v git &> /dev/null; then
+    echo "${YELLOW}Git is not installed. Installing...${NORMAL}"
+    apt update
+    apt install -y git
+fi
 
 echo "${BOLD}OLED Stats Display Installation${NORMAL}"
 echo "=============================="
 echo
+
+# Step 0: Clone repository
+echo "${BOLD}Step 0:${NORMAL} Preparing installation files..."
+
+# Clean up any old temporary files
+if [ -d "$TMP_DIR" ]; then
+  rm -rf "$TMP_DIR"
+fi
+
+# Clone the repository
+echo "Cloning repository from $REPO_URL..."
+git clone "$REPO_URL" "$TMP_DIR"
+
+if [ ! -d "$TMP_DIR" ]; then
+  echo "${RED}${BOLD}Error:${NORMAL}${RED} Failed to clone repository. Check your internet connection.${NORMAL}"
+  exit 1
+fi
+
+# Use the cloned repository for all subsequent operations
+SOURCE_DIR="$TMP_DIR"
 
 # Step 1: Check if I2C is enabled
 echo "${BOLD}Step 1:${NORMAL} Checking if I2C is enabled..."
@@ -65,7 +93,7 @@ fi
 mkdir -p "$INSTALL_DIR"
 
 # Copy all files
-cp -r "$SCRIPT_DIR"/* "$INSTALL_DIR"
+cp -r "$SOURCE_DIR"/* "$INSTALL_DIR"
 
 # Create fonts directory if it doesn't exist
 if [ ! -d "$INSTALL_DIR/fonts" ]; then
@@ -86,14 +114,49 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Upgrade pip first
-pip install --upgrade pip setuptools wheel
+python3 -m pip install --upgrade pip setuptools wheel
 
 # Install Python requirements with proper build tools enabled
-pip install -r requirements.txt --extra-index-url https://www.piwheels.org/simple
+if [ -f "$INSTALL_DIR/requirements.txt" ]; then
+  python3 -m pip install -r requirements.txt --extra-index-url https://www.piwheels.org/simple
+else
+  echo "${YELLOW}Warning: requirements.txt not found, installing dependencies manually...${NORMAL}"
+  python3 -m pip install luma.oled>=3.8.1 RPi.GPIO>=0.7.0 smbus2>=0.4.1 psutil>=5.8.0 Pillow>=8.4.0 --extra-index-url https://www.piwheels.org/simple
+fi
 
 # Step 6: Install systemd service
 echo "${BOLD}Step 6:${NORMAL} Installing systemd service..."
-cp "$INSTALL_DIR/scripts/rpi-oled.service" "$SERVICE_FILE"
+
+# Check if service file exists
+if [ -f "$INSTALL_DIR/scripts/rpi-oled.service" ]; then
+  cp "$INSTALL_DIR/scripts/rpi-oled.service" "$SERVICE_FILE"
+else
+  echo "${YELLOW}Service file not found, creating one...${NORMAL}"
+  
+  # Create the service file directly
+  cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=Raspberry Pi OLED Stats Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python3 $INSTALL_DIR/scripts/run_oled_service.py
+Restart=on-failure
+RestartSec=5
+User=root
+# Give the service some time to start
+TimeoutStartSec=10
+# Make sure this service restarts after system upgrades
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  
+  echo "${GREEN}Created systemd service file: $SERVICE_FILE${NORMAL}"
+fi
 
 # Make sure the I2C device has proper permissions
 echo "${BOLD}Step 6a:${NORMAL} Setting up I2C permissions..."
@@ -122,7 +185,25 @@ if [ -e /dev/i2c-1 ]; then
 fi
 
 # Make scripts executable
-chmod +x "$INSTALL_DIR/scripts/run_oled_service.py"
+if [ -f "$INSTALL_DIR/scripts/run_oled_service.py" ]; then
+  chmod +x "$INSTALL_DIR/scripts/run_oled_service.py"
+else
+  echo "${YELLOW}Warning: run_oled_service.py not found in expected location.${NORMAL}"
+  
+  # Check if the script exists in another location
+  run_script=$(find "$INSTALL_DIR" -name "run_oled_service.py" | head -n 1)
+  
+  if [ -n "$run_script" ]; then
+    echo "${GREEN}Found script at: $run_script${NORMAL}"
+    chmod +x "$run_script"
+    
+    # Update service file with correct path
+    sed -i "s|ExecStart=.*|ExecStart=$INSTALL_DIR/venv/bin/python3 $run_script|" "$SERVICE_FILE"
+  else
+    echo "${RED}Error: Could not find run_oled_service.py in the installation directory.${NORMAL}"
+    echo "${YELLOW}You may need to manually create this file or check the repository structure.${NORMAL}"
+  fi
+fi
 
 # Enable and start the service
 systemctl daemon-reload
@@ -157,4 +238,12 @@ echo
 echo "To check service status: ${BOLD}systemctl status rpi-oled.service${NORMAL}"
 echo "To view service logs:    ${BOLD}journalctl -u rpi-oled.service${NORMAL}"
 echo "To run test script:      ${BOLD}cd ${INSTALL_DIR} && sudo python3 direct_test.py${NORMAL}"
+
+# Clean up temporary files
+if [ -d "$TMP_DIR" ]; then
+  echo ""
+  echo "Cleaning up temporary files..."
+  rm -rf "$TMP_DIR"
+fi
+
 echo
