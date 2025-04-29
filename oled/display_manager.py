@@ -59,21 +59,33 @@ class DisplayManager:
             if widget_type == "resource":
                 x, _ = widget.render(draw, x, top_row_y, self.width)
         
-        # Render service widgets from right to left
+        # Render service widgets from right to left, spaced horizontally
         # Align them to the right side of the display
         service_x = self.width
         service_widgets = [(t, w) for t, w in self.top_row_widgets if t == "service"]
+        service_widgets.reverse()  # Process right-to-left
         
-        for _, widget in service_widgets:
-            service_x, _ = widget.render(draw, service_x, top_row_y, self.width, align_right=True)
+        # Calculate proper spacing for service widgets
+        service_spacing = 20  # Each icon gets 20px of space
+        
+        # Start from right edge with proper spacing
+        for i, (_, widget) in enumerate(service_widgets):
+            # Position from right edge with consistent spacing
+            widget_x = self.width - (i + 1) * service_spacing
+            widget.render(draw, widget_x, top_row_y, self.width)
+        
+        # Draw a horizontal divider line with a dashed pattern to simulate 50% opacity
+        # Since OLED is monochrome and doesn't support opacity, we use a dashed pattern
+        y_divider = 15  # Position between top and bottom rows
+        
+        # Draw dashed line (alternating pixels on/off to simulate 50% opacity)
+        for x_pos in range(0, self.width, 2):  # Every other pixel
+            draw.point((x_pos, y_divider), fill=255)
         
         # Render text widgets on bottom row
         x = 0
         for widget in self.bottom_row_widgets:
             x, _ = widget.render(draw, x, bottom_row_y, self.width)
-        
-        # Optional: Draw a horizontal line divider
-        # draw.line([(0, 15), (self.width-1, 15)], fill=255, width=1)
         
         # Show on the display
         self.device.display(image)

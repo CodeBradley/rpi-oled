@@ -10,7 +10,7 @@ class CPUWidget(ResourceWidget):
     """
     def __init__(self):
         # CPU icon from BoxIcons (bxs-chip)
-        super().__init__(icon_char=chr(0xEB96))  # Updated to bxs-chip hex value
+        super().__init__(icon_char=chr(0xED45))  # Updated to bxs-chip hex value
         self.value = 0
 
     def update(self):

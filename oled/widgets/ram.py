@@ -10,7 +10,7 @@ class RAMWidget(ResourceWidget):
     """
     def __init__(self):
         # Memory card icon from BoxIcons (bxs-memory-card)
-        super().__init__(icon_char=chr(0xEB83))  # Updated to bxs-memory-card hex value
+        super().__init__(icon_char=chr(0xEE46))  # Updated to bxs-memory-card hex value
         self.value = 0
 
     def update(self):

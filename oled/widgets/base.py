@@ -134,24 +134,22 @@ class ServiceWidget(BaseWidget):
         Returns:
             tuple: Updated (x, y) position for next widget
         """
-        # Calculate icon width
-        try:
-            icon_width = self.icon_font.getbbox(self.icon_char)[2] if self.active else 0
-        except AttributeError:
-            icon_width = 12 if self.active else 0
+        # Only render if the service is active
+        if not self.active:
+            return (x, y)  # Return unchanged position if service not active
             
-        # Determine position based on alignment
-        if align_right:
-            # Position from right edge
-            icon_x = x - icon_width - 4  # 4px margin
-            if self.active:
-                draw.text((icon_x, y), self.icon_char, font=self.icon_font, fill=255)
-            return (icon_x, y)  # Return new x position to the left
-        else:
-            # Position from left edge
-            if self.active:
-                draw.text((x, y), self.icon_char, font=self.icon_font, fill=255)
-            return (x + icon_width + 4, y)  # Return new x position to the right
+        # Draw the service icon - position is based on the display manager's calculation
+        # when using the new horizontal spacing method, so we use the exact x position provided
+        draw.text((x, y), self.icon_char, font=self.icon_font, fill=255)
+        
+        # Calculate icon width for return value
+        try:
+            icon_width = self.icon_font.getbbox(self.icon_char)[2]
+        except AttributeError:
+            icon_width = 12  # Fallback width
+            
+        # Return the next position (add width plus margin)
+        return (x + icon_width + 2, y)
 
 class TextWidget(BaseWidget):
     """
